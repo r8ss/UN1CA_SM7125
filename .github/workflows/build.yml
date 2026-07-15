@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [a52q, a72q]
+        target: [a52q, a72q, a52sxq]
 
     steps:
       - name: Checkout repo
@@ -81,3 +81,10 @@ jobs:
         run: |
           source ./buildenv.sh ${{ matrix.target }}
           ./scripts/make_rom.sh
+
+      - name: Upload ROM Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MonsterROM-${{ matrix.target }}
+          path: |
+            out/*.zip*
