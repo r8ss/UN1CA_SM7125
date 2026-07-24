@@ -13,12 +13,12 @@ concurrency:
 
 jobs:
   build:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
       matrix:
-        target: [a52q, a72q, r8s]
+        target: [r8s]
 
     steps:
       - name: Checkout repo
