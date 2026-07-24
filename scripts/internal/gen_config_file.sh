@@ -22,18 +22,18 @@ GET_BUILD_VAR()
     return 0
 }
 
-IS_UNICA_CERT_AVAILABLE()
+IS_OFFICIAL_CERT_AVAILABLE()
 {
-    local PLATFORM_KEY_SHA1="5b0eb951718acc596370dabab83f546e779b21dc"
-    local OTA_KEY_SHA1="681aa9d28fe5fc60be8c25dc5f26a73ec3d6fb46"
+    local PLATFORM_KEY_SHA1="1c7539462761b312c7db18908344ab45863cf6af"
+    local OTA_KEY_SHA1="04cad1d2dc784eacdb668c9da15e4ceae0c82c1b"
 
-    local USES_UNICA_CERT="false"
-    if [[ "$(sha1sum "$SRC_DIR/security/unica_platform.pk8" 2> /dev/null | cut -d " " -f 1)" == "$PLATFORM_KEY_SHA1" ]] && \
-            [[ "$(sha1sum "$SRC_DIR/security/unica_ota.pk8" 2> /dev/null | cut -d " " -f 1)" == "$OTA_KEY_SHA1" ]]; then
-        USES_UNICA_CERT="true"
+    local USES_OFFICIAL_CERT="false"
+    if [[ "$(sha1sum "$SRC_DIR/security/artisanrom_platform.pk8" 2> /dev/null | cut -d " " -f 1)" == "$PLATFORM_KEY_SHA1" ]] && \
+            [[ "$(sha1sum "$SRC_DIR/security/artisanrom_ota.pk8" 2> /dev/null | cut -d " " -f 1)" == "$OTA_KEY_SHA1" ]]; then
+        USES_OFFICIAL_CERT="true"
     fi
 
-    echo "$USES_UNICA_CERT"
+    echo "$USES_OFFICIAL_CERT"
 }
 # ]
 
@@ -48,7 +48,7 @@ else
     source "$SRC_DIR/target/$1/config.sh" || exit 1
     if [ -f "$SRC_DIR/platform/$TARGET_PLATFORM/config.sh" ]; then
         # HACK
-        source "$SRC_DIR/platform/$TARGET_PLATFORM/config.sh" || exit 1
+        source "$SRC_DIR/platform/$TARGET_PLATFORM/config.sh" || exit
         source "$SRC_DIR/target/$1/config.sh" || exit 1
     fi
 fi
@@ -128,6 +128,11 @@ fi
 #     If set to true, AVB signing will be disabled.
 #     Defaults to false.
 #
+#   TARGET_INCLUDE_PATCHED_VBMETA (DEPRECATED)
+#     If set to true, a patched vbmeta image will be included in the compiled Odin tar package.
+#     Only applies when TARGET_INSTALL_METHOD is set to "odin".
+#     Defaults to false.
+#
 #   TARGET_KEEP_ORIGINAL_SIGN
 #     If set to true, the original AVB/Samsung signature footer is kept in the target device kernel images.
 #     Defaults to false.
@@ -144,55 +149,17 @@ fi
 #   TARGET_VENDOR_BOOT_PARTITION_SIZE
 #     Integer containing the size in bytes of the target device vendor_boot partition size.
 #
-#   TARGET_CACHE_PARTITION_SIZE
-#     Integer containing the size in bytes of the target device cache partition size.
-#
-#   TARGET_USE_DYNAMIC_PARTITIONS
-#     Boolean which describes whether the device has dynamic partitions support.
-#     Defaults to false.
-#
 #   TARGET_SUPER_PARTITION_SIZE
 #     Integer containing the size in bytes of the target device super partition size, which can be checked using the lpdump tool.
-#     Required if TARGET_USE_DYNAMIC_PARTITIONS is set to true.
 #     Notice this must be bigger than TARGET_${TARGET_SUPER_GROUP_NAME}_SIZE.
 #
 #   [SOURCE/TARGET]_SUPER_GROUP_NAME
 #     String containing the super partition group name the device uses.
-#     Required if TARGET_USE_DYNAMIC_PARTITIONS is set to true.
 #     When TARGET_SUPER_GROUP_NAME is not set, the value in SOURCE_SUPER_GROUP_NAME is used by default.
 #
 #   TARGET_${TARGET_SUPER_GROUP_NAME}_SIZE
 #     Integer containing the size in bytes of the target device super group size, which can be checked using the lpdump tool.
-#     Required if TARGET_USE_DYNAMIC_PARTITIONS is set to true.
 #     Notice this must be smaller than TARGET_SUPER_PARTITION_SIZE.
-#
-#   TARGET_SYSTEM_PARTITION_SIZE
-#     Integer containing the size in bytes of the target device system partition size.
-#     Unused if TARGET_USE_DYNAMIC_PARTITIONS is set to false.
-#
-#   TARGET_VENDOR_PARTITION_SIZE
-#     Integer containing the size in bytes of the target device vendor partition size.
-#     Unused if TARGET_USE_DYNAMIC_PARTITIONS is set to false.
-#
-#   TARGET_PRODUCT_PARTITION_SIZE
-#     Integer containing the size in bytes of the target device product partition size.
-#     Unused if TARGET_USE_DYNAMIC_PARTITIONS is set to false.
-#
-#   TARGET_ODM_PARTITION_SIZE
-#     Integer containing the size in bytes of the target device odm partition size.
-#     Unused if TARGET_USE_DYNAMIC_PARTITIONS is set to false.
-#
-#   TARGET_VENDOR_DLKM_PARTITION_SIZE
-#     Integer containing the size in bytes of the target device vendor_dlkm partition size.
-#     Unused if TARGET_USE_DYNAMIC_PARTITIONS is set to false.
-#
-#   TARGET_ODM_DLKM_PARTITION_SIZE
-#     Integer containing the size in bytes of the target device odm_dlkm partition size.
-#     Unused if TARGET_USE_DYNAMIC_PARTITIONS is set to false.
-#
-#   TARGET_SYSTEM_DLKM_PARTITION_SIZE
-#     Integer containing the size in bytes of the target device system_dlkm partition size.
-#     Unused if TARGET_USE_DYNAMIC_PARTITIONS is set to false.
 #
 #   TARGET_OS_SINGLE_SYSTEM_IMAGE
 #     String containing the target device SSI, it must match the `ro.build.product` prop.
@@ -205,6 +172,10 @@ fi
 #
 #   TARGET_OS_BUILD_SYSTEM_EXT_PARTITION
 #     If set to true, system_ext partition will be built.
+#
+#   TARGET_OS_BOOT_DEVICE_PATH
+#     String containing the path to the target device block devices.
+#     Defaults to "/dev/block/bootdevice/by-name".
 #
 #   [SOURCE/TARGET]_AUDIO_CONFIG_RECORDALIVE_LIB_VERSION
 #     Integer containing the device RecordAlive lib version.
@@ -343,7 +314,6 @@ fi
 #     Boolean which describes whether the device supports hardware mDNIe.
 #     It can be checked in the following ways:
 #       - `A11Y_COLOR_BOOL_SUPPORT_MDNIE_HW` value in the `android.view.accessibility.A11yRune` class inside `framework.jar`
-#       - "SEC_FLOATING_FEATURE_LCD_SUPPORT_MDNIE_HW" value in floating_feature.xml
 #
 #   [SOURCE/TARGET]_RIL_FEATURES
 #     String containing the device RIL feature string.
@@ -406,6 +376,9 @@ fi
 #   [SOURCE/TARGET]_WLAN_SUPPORT_MBO
 #     Boolean which describes whether the device supports the Wi-Fi Agile Multiband standard.
 #
+#   [SOURCE/TARGET]_WLAN_SUPPORT_MIMO
+#     Boolean which describes whether the device supports the MIMO standard.
+#
 #   [SOURCE/TARGET]_WLAN_SUPPORT_MOBILEAP_5G_BASEDON_COUNTRY
 #     Boolean which describes whether the device should enable the 5Ghz Mobile Hotspot band depending the country code.
 #
@@ -440,8 +413,9 @@ fi
 #     Boolean which describes whether the device supports Wi-Fi to Cellular.
 {
     echo "# Automatically generated by scripts/internal/gen_config_file.sh"
-    echo "ROM_IS_OFFICIAL=\"$(IS_UNICA_CERT_AVAILABLE)\""
+    echo "ROM_IS_OFFICIAL=\"$(IS_OFFICIAL_CERT_AVAILABLE)\""
     GET_BUILD_VAR "ROM_VERSION"
+    GET_BUILD_VAR "ROM_CODENAME"
     GET_BUILD_VAR "ROM_BUILD_TIMESTAMP" "$(date +%s)"
     GET_BUILD_VAR "SOURCE_FIRMWARE"
     if [ "${#SOURCE_EXTRA_FIRMWARES[@]}" -ge 1 ]; then
@@ -474,27 +448,19 @@ fi
     GET_BUILD_VAR "TARGET_KEEP_ORIGINAL_SIGN" "false"
     GET_BUILD_VAR "TARGET_BOOT_PARTITION_SIZE" "none"
     GET_BUILD_VAR "TARGET_DTBO_PARTITION_SIZE" "none"
+    GET_BUILD_VAR "TARGET_DTBO_LTE_PARTITION_SIZE" "none"
+    GET_BUILD_VAR "TARGET_RECOVERY_PARTITION_SIZE" "none"
+    GET_BUILD_VAR "TARGET_LK3RD_PARTITION_SIZE" "none"
     GET_BUILD_VAR "TARGET_INIT_BOOT_PARTITION_SIZE" "none"
     GET_BUILD_VAR "TARGET_VENDOR_BOOT_PARTITION_SIZE" "none"
-    GET_BUILD_VAR "TARGET_CACHE_PARTITION_SIZE" "none"
-    GET_BUILD_VAR "TARGET_USE_DYNAMIC_PARTITIONS" "false"
-    if ${TARGET_USE_DYNAMIC_PARTITIONS:-false}; then
-        GET_BUILD_VAR "TARGET_SUPER_PARTITION_SIZE"
-        GET_BUILD_VAR "SOURCE_SUPER_GROUP_NAME"
-        GET_BUILD_VAR "TARGET_SUPER_GROUP_NAME" "$SOURCE_SUPER_GROUP_NAME"
-        GET_BUILD_VAR "TARGET_$(tr "[:lower:]" "[:upper:]" <<< "${TARGET_SUPER_GROUP_NAME:-$SOURCE_SUPER_GROUP_NAME}")_SIZE"
-    else
-        GET_BUILD_VAR "TARGET_SYSTEM_PARTITION_SIZE" "none"
-        GET_BUILD_VAR "TARGET_VENDOR_PARTITION_SIZE" "none"
-        GET_BUILD_VAR "TARGET_PRODUCT_PARTITION_SIZE" "none"
-        GET_BUILD_VAR "TARGET_ODM_PARTITION_SIZE" "none"
-        GET_BUILD_VAR "TARGET_VENDOR_DLKM_PARTITION_SIZE" "none"
-        GET_BUILD_VAR "TARGET_ODM_DLKM_PARTITION_SIZE" "none"
-        GET_BUILD_VAR "TARGET_SYSTEM_DLKM_PARTITION_SIZE" "none"
-    fi
+    GET_BUILD_VAR "TARGET_SUPER_PARTITION_SIZE"
+    GET_BUILD_VAR "SOURCE_SUPER_GROUP_NAME"
+    GET_BUILD_VAR "TARGET_SUPER_GROUP_NAME" "$SOURCE_SUPER_GROUP_NAME"
+    GET_BUILD_VAR "TARGET_$(tr "[:lower:]" "[:upper:]" <<< "${TARGET_SUPER_GROUP_NAME:-$SOURCE_SUPER_GROUP_NAME}")_SIZE"
     GET_BUILD_VAR "TARGET_OS_SINGLE_SYSTEM_IMAGE"
     GET_BUILD_VAR "TARGET_OS_FILE_SYSTEM_TYPE" "erofs"
     GET_BUILD_VAR "TARGET_OS_BUILD_SYSTEM_EXT_PARTITION"
+    GET_BUILD_VAR "TARGET_OS_BOOT_DEVICE_PATH" "/dev/block/bootdevice/by-name"
     GET_BUILD_VAR "SOURCE_AUDIO_CONFIG_RECORDALIVE_LIB_VERSION" "none"
     GET_BUILD_VAR "TARGET_AUDIO_CONFIG_RECORDALIVE_LIB_VERSION" "none"
     GET_BUILD_VAR "SOURCE_AUDIO_SUPPORT_ACH_RINGTONE"
@@ -575,6 +541,8 @@ fi
     GET_BUILD_VAR "TARGET_WLAN_SUPPORT_LOWLATENCY"
     GET_BUILD_VAR "SOURCE_WLAN_SUPPORT_MBO"
     GET_BUILD_VAR "TARGET_WLAN_SUPPORT_MBO"
+    GET_BUILD_VAR "SOURCE_WLAN_SUPPORT_MIMO"
+    GET_BUILD_VAR "TARGET_WLAN_SUPPORT_MIMO"
     GET_BUILD_VAR "SOURCE_WLAN_SUPPORT_MOBILEAP_5G_BASEDON_COUNTRY"
     GET_BUILD_VAR "TARGET_WLAN_SUPPORT_MOBILEAP_5G_BASEDON_COUNTRY"
     GET_BUILD_VAR "SOURCE_WLAN_SUPPORT_MOBILEAP_6G"

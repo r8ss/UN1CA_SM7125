@@ -63,7 +63,7 @@ DECODE_APK()
 }
 
 # GET_GALAXY_STORE_DOWNLOAD_URL "<package name/id>"
-# Returns a URL to download the desired app from Samsung servers.
+# Returns a URL to download the desidered app from Samsung servers.
 GET_GALAXY_STORE_DOWNLOAD_URL()
 {
     _CHECK_NON_EMPTY_PARAM "PACKAGE" "$1" || return 1
@@ -76,7 +76,7 @@ GET_GALAXY_STORE_DOWNLOAD_URL()
 
     # Galaxy S25 Ultra EUR_OPENX
     # Galaxy S22 Ultra GBL_OPENX
-    DEVICES=("SM-S938B" "SM-S901E")
+    DEVICES=("SM-S938B" "SM-S908E")
 
     OS="$(GET_PROP "system" "ro.build.version.sdk")"
     ONEUI="$(GET_PROP "system" "ro.build.version.oneui")"
@@ -154,7 +154,7 @@ GET_FLOATING_FEATURE_CONFIG()
 }
 
 # HEX_PATCH "<file>" "<old pattern>" "<new pattern>"
-# Applies the supplied hex patch to the desired file.
+# Applies the supplied hex patch to the desidered file.
 HEX_PATCH()
 {
     _CHECK_NON_EMPTY_PARAM "FILE" "$1" || return 1
@@ -170,19 +170,11 @@ HEX_PATCH()
         return 1
     fi
 
-    FROM="${FROM// /}"
-    TO="${TO// /}"
-
     FROM="$(tr "[:upper:]" "[:lower:]" <<< "$FROM")"
     TO="$(tr "[:upper:]" "[:lower:]" <<< "$TO")"
 
     if ! xxd -p -c 0 "$FILE" | grep -q "$FROM"; then
         LOGE "No \"$FROM\" match in ${FILE//$WORK_DIR/}"
-        return 1
-    fi
-
-    if [[ "$(echo -n "$FROM" | wc -c)" != "$(echo -n "$TO" | wc -c)" ]]; then
-        LOGE "Byte strings length must be equal"
         return 1
     fi
 
@@ -194,7 +186,7 @@ HEX_PATCH()
 }
 
 # SET_FLOATING_FEATURE_CONFIG "<config>" "<value>"
-# Sets the supplied config to the desired value.
+# Sets the supplied config to the desidered value.
 # "-d" or "--delete" can be passed as value to delete the config.
 SET_FLOATING_FEATURE_CONFIG()
 {
